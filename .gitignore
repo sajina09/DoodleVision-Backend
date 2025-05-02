@@ -28,6 +28,12 @@ build/
 *.out
 *.bak
 
+# Ignore other heavy files, but allow specific model files
+!cnn_classifier_model.keras
+!vae_encoder.keras
+!vae_decoder.keras
+
+# Still ignore weights files for now
 # Model files (only if they're too big or you plan to download from Drive)
 *.h5
 *.keras
