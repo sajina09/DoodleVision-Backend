@@ -1,0 +1,46 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env/
+*.env
+
+# System / editor stuff
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Python egg files
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Logs and debug files
+*.log
+*.out
+*.bak
+
+# Model files (only if they're too big or you plan to download from Drive)
+*.h5
+*.keras
+*.weights.h5
+
+# Jupyter checkpoints (if any)
+.ipynb_checkpoints/
+
+# Testing / coverage
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# Uvicorn / Render artifacts
+*.pid
