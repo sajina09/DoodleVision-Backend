@@ -1,6 +1,9 @@
-fastapi
-uvicorn
-pillow
-numpy
-tensorflow
-matplotlib
+fastapi==0.115.12
+Flask==3.1.1
+matplotlib==3.9.4
+numpy==2.0.2
+opencv-python==4.11.0.86
+pillow==11.2.1
+python-multipart==0.0.20
+tensorflow==2.19.0
+uvicorn==0.34.3
