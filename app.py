@@ -9,9 +9,10 @@ from tensorflow import keras
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 from preprocess import preprocess_image
-from models import CVAE_Encoder, CVAE_Decoder  # 🧡 your custom models
+from models import CVAE_Encoder, CVAE_Decoder  
 
 app = FastAPI()
 
@@ -30,19 +31,33 @@ cnn_model = keras.models.load_model('cnn_classifier_model.keras')
 classes = ['flower', 'hat', 'bicycle', 'cat', 'tree', 'fish', 'candle', 'star', 'face', 'house']
 
 # Build and load encoder/decoder
-latent_dim = 16  # or whatever you used
-
-# encoder = CVAE_Encoder()
-# encoder.build(input_shape=(None, 28, 28, 1))  # make sure it matches
-# encoder.load_weights('encoder.weights.h5')
-
-# decoder = CVAE_Decoder()
-# decoder.build(input_shape=(None, latent_dim))
-# decoder.load_weights('decoder.weights.h5')
+latent_dim = 16 
 
 
 encoder = keras.models.load_model('vae_encoder.keras', custom_objects={'CVAE_Encoder': CVAE_Encoder})
 decoder = keras.models.load_model('vae_decoder.keras', custom_objects={'CVAE_Decoder': CVAE_Decoder})
+
+# Load LLM
+llm_model_name = "declare-lab/flan-alpaca-large"
+
+tokenizer = AutoTokenizer.from_pretrained(llm_model_name)
+model = AutoModelForSeq2SeqLM.from_pretrained(llm_model_name)
+
+def generate_story(obj_class):
+    prompt = f"Write a short and simple story for a 3-year-old child about a {obj_class}. Use easy words and make it fun."
+
+    inputs = tokenizer(prompt, return_tensors="pt")
+    outputs = model.generate(
+    **inputs,
+    max_length=80,
+    do_sample=True,           # Enables sampling
+    top_p=0.95,               # Nucleus sampling
+    temperature=0.8,          # Controls randomness (lower = more conservative)
+    top_k=50,                 # Optional: adds randomness by sampling from top-k tokens
+    repetition_penalty=1.1,   # Penalize repetition
+    num_return_sequences=1    # Only 1 story
+    )
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 # Force build
 dummy_noise = tf.random.normal((1, 16))
@@ -112,67 +127,13 @@ async def predict(file: UploadFile = File(...)):
     random_noise = tf.random.normal(shape=(1, latent_dim))
     random_generated = decoder((random_noise, label_onehot))
 
-
-    # Step 6. Plot all three images side by side
-    # fig, axs = plt.subplots(1, 3, figsize=(12, 4))
-
-    # axs[0].imshow(img_array[0, :, :, 0], cmap='gray')
-    # axs[0].set_title("1. Input Sketch")
-    # axs[0].axis('off')
-
-    # axs[1].imshow(reconstructed[0, :, :, 0], cmap='gray')
-    # axs[1].set_title("2. Reconstructed Sketch")
-    # axs[1].axis('off')
-
-    # axs[2].imshow(random_generated[0, :, :, 0], cmap='gray')
-    # axs[2].set_title(f"3. Random {predicted_label} Sketch")
-    # axs[2].axis('off')
-
-    # plt.tight_layout()
-    # plt.show()
-
-    # print(decoder.summary())
-    print(tf.reduce_mean(decoder((tf.random.normal((1, latent_dim)), tf.one_hot([0], depth=len(classes))))))
+     # Generate story
+    story = generate_story(predicted_label)
 
 
-    # Step 7. Return only prediction to frontend (not images)
-    return JSONResponse(content={"prediction": predicted_label})
+    # Step 7. Return only prediction and story to frontend (not images)
+    return JSONResponse(content={"prediction": predicted_label, "story": story})
 
 
 
 
-# 🆕 New generate route (returns base64 images)
-# @app.post("/generate")
-# async def generate(file: UploadFile = File(...), label: str = Form(...)):
-#     contents = await file.read()
-#     img_array = preprocess_image(contents)  # (1, 28, 28, 1)
-
-#     # Reconstruct user sketch
-#     mu, logvar = encoder((img_array, "label_onehot"))
-#     eps = tf.random.normal(shape=tf.shape(mu))
-#     z = mu + tf.exp(0.5 * logvar) * eps
-#     reconstructed = decoder(z)
-
-#     # Generate a fresh random image from label
-#     label_idx = classes.index(label.lower())
-#     label_one_hot = tf.one_hot(label_idx, depth=len(classes))
-     
-#      # ➡️ Expand dims to add batch
-#     label_one_hot = tf.expand_dims(label_one_hot, axis=0)   
-    
-#     label_dense = tf.keras.layers.Dense(latent_dim)(label_one_hot)
-#     noise = tf.random.normal(shape=(1, latent_dim))
-#     latent_input = noise + label_dense
-#     generated = decoder(latent_input)
-
-#     # Convert both images to base64
-#     reconstructed_b64 = array_to_base64(reconstructed)
-#     generated_b64 = array_to_base64(generated)
-
-#     # visualize_debug(reconstructed, title="Reconstructed Image")
-#     # visualize_debug(generated, title="Generated Image") 
-
-#     return JSONResponse(content={
-#         "reconstructed_image": reconstructed_b64,
-#         "generated_image": generated_b64
-#     })
