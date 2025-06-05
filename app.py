@@ -29,7 +29,14 @@ classes = ['flower', 'hat', 'bicycle', 'cat', 'tree', 'fish', 'candle', 'star', 
 # Load LLM
 llm_model_name = "declare-lab/flan-alpaca-large"
 tokenizer = AutoTokenizer.from_pretrained(llm_model_name)
-model = AutoModelForSeq2SeqLM.from_pretrained(llm_model_name)
+model = None
+
+
+def load_model():
+    global model
+    if model is None:
+        model = AutoModelForSeq2SeqLM.from_pretrained(llm_model_name)
+
 
 # Story generation function
 def generate_story(obj_class):
@@ -52,7 +59,7 @@ def generate_story(obj_class):
 async def predict(file: UploadFile = File(...)):
     contents = await file.read()
     img_array = preprocess_image(contents)  # Output: (1, 28, 28, 1)
-
+    load_model()
     prediction = cnn_model.predict(img_array)
     predicted_class_idx = np.argmax(prediction)
     predicted_label = classes[predicted_class_idx]
