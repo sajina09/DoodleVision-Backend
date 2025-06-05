@@ -11,6 +11,8 @@ import io
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 from preprocess import preprocess_image  # make sure this still works for (1,28,28,1)
+from story_bank import get_random_story
+
 
 app = FastAPI()
 
@@ -59,11 +61,11 @@ def generate_story(obj_class):
 async def predict(file: UploadFile = File(...)):
     contents = await file.read()
     img_array = preprocess_image(contents)  # Output: (1, 28, 28, 1)
-    load_model()
+    # load_model()
     prediction = cnn_model.predict(img_array)
     predicted_class_idx = np.argmax(prediction)
     predicted_label = classes[predicted_class_idx]
 
-    story = generate_story(predicted_label)
-
-    return JSONResponse(content={"prediction": predicted_label, "story": story})
+    # story = generate_story(predicted_label)
+    story = get_random_story(predicted_label)
+    return JSONResponse(content={"prediction": predicted_label, "story": "Generate a story"})
